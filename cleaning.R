@@ -84,3 +84,13 @@ platform_id = c(1,2,3,4)
 
 platform <- data.frame(platform_id, platform_name)
 
+
+library(odbc)
+library(RPostgreSQL)
+drv <- dbDriver('PostgreSQL')
+con <- dbConnect(drv, dbname = 'GP',
+                 host = 'localhost', port = 5432,
+                 user = 'postgres', password = '123')
+
+#upload platform table 
+dbWriteTable(con, c("public", "platform"), platform, row.names= FALSE,  append = T)
