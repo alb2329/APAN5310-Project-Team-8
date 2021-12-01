@@ -53,4 +53,12 @@ dat$rating[dat$rating == "UNRATED"] <- "UR"
 dat$rating[dat$rating == "16"] <- "R"
 dat$rating[dat$rating == "TV-Y7-FV"] <- "TV-Y7"
 
+## CREATE MOVIE TABLE
+
+movies <- dat %>% filter(type == "Movie") %>%
+  select(type, title, date_added, release_year, rating, duration, budget, revenue, vote_average, description ) %>%
+  unique()
+
+movies <- transform(movies, movie_id = as.numeric(factor(title)))
+
 
