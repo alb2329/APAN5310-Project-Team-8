@@ -76,4 +76,11 @@ movie_platform <- merge(movie_id, movie_platform_id, by = "title") %>% select(mo
 
 
 
+#Platform
+
+platform = c("Netflix", "Hulu", "Disney", "Amazon")
+
+platform_id = c(1,2,3,4)
+
+platform <- data.frame(platform_id, platform_name)
 
