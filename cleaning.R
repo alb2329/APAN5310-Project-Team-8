@@ -62,3 +62,18 @@ movies <- dat %>% filter(type == "Movie") %>%
 movies <- transform(movies, movie_id = as.numeric(factor(title)))
 
 
+
+
+
+#Movie Platform
+
+movie_id <- movies %>% select(movie_id, title)
+
+movie_platform_id <- dat %>% filter(type == "Movie") %>%
+  select(platform_id, title)
+
+movie_platform <- merge(movie_id, movie_platform_id, by = "title") %>% select(movie_id, platform_id)
+
+
+
+
