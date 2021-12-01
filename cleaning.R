@@ -36,8 +36,6 @@ dat$release_year <- parse_date_time(netflix$release_year,'y')
 
 
 
-
-
 #Clean Ratings
 unique(dat$rating)
 
@@ -94,3 +92,33 @@ con <- dbConnect(drv, dbname = 'GP',
 
 #upload platform table 
 dbWriteTable(con, c("public", "platform"), platform, row.names= FALSE,  append = T)
+
+
+
+
+##splitting multiple values in a cell
+
+#split cast into actors
+df_splitcast <- dat %>% tidyr::separate(
+  cast, sep = ", ", 
+  into = c("actor1", "actor2", "actor3", "actor4", "actor5", "actor6", "actor7", "actor8", 
+           "actor9", "actor10", "actor11", "actor12", "actor13", "actor14", "actor15", "actor16",
+           "actor17", "actor18", "actor19", "actor20", "actor21", "actor22", "actor23"), 
+  remove = FALSE
+)
+head(df_splitcast)
+
+#remove columns after actor columns
+df_splitcast <- df_splitcast[,1:28]
+head(df_splitcast)
+
+actor_temp <- melt(df_splitcast, 
+                   id.vars = c("id", "type", "title", "director", "cast"),
+                   measure.vars = c("actor1", "actor2", "actor3", "actor4", "actor5", "actor6", "actor7", "actor8", 
+                               "actor9", "actor10", "actor11", "actor12", "actor13", "actor14", "actor15", "actor16",
+                               "actor17", "actor18", "actor19", "actor20", "actor21", "actor22", "actor23"), 
+                   na.rm = TRUE)
+
+#order by id
+actor_temp <- actor_temp[order(id),]
+actor_temp
