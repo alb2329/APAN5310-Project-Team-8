@@ -1,0 +1,213 @@
+---
+title: "Streaming Entertainment Analysis"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+library(flexdashboard)
+library(shiny)
+library(shinythemes)
+library(shinyWidgets)
+library(lubridate)
+library(DT)
+library(tidyverse)
+library(data.table) 
+```
+
+
+```{r}
+ #read data
+# Read in Data
+dat <- fread(input = "output.csv")
+```
+
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+
+
+
+# Replace Blanks with NA
+dat$director[dat$director==""] <- NA
+dat$cast[dat$cast==""] <- NA
+dat$country[dat$country==""] <- NA
+dat$rating[dat$rating==""] <- NA
+dat$date_added[dat$date_added==""] <- NA
+dat$listed_in[dat$listed_in==""] <- NA
+dat$revenue[dat$revenue==""] <- NA
+dat$budget[dat$budget==""] <- NA
+dat$duration[dat$duration==""] <- NA
+dat$vote_average[dat$vote_average==""] <- NA
+dat$episode_run_time[dat$episode_run_time==""] <- NA
+dat$number_of_episodes[dat$number_of_episodes==""] <- NA
+
+
+
+# Clean Special Characters
+dat$title <- iconv(dat$title,to="ASCII//TRANSLIT")
+dat$title[dat$title == "A FRIENDSHIP"] <- "A Friendship"
+dat$title[dat$title == "A?on Flux"] <- "Aeon Flux"
+
+# Clean dates
+mdy <- mdy(dat$date_added) 
+dmy <- dmy(dat$date_added) 
+mdy[is.na(mdy)] <- dmy[is.na(mdy)] # some dates are ambiguous, here we give 
+dat$date_added <- mdy  
+dat$date_added <- as.Date(dat$date_added)
+dat$release_year <- as.character(dat$release_year)
+
+
+
+# Clean type variable
+dat$type[grepl("Season", dat$duration)] <- "TV Show"
+
+
+
+# Clean Ratings
+
+dat$rating[dat$rating == "13+"] <- "PG-13"
+dat$rating[dat$rating == "All"] <- "G"
+dat$rating[dat$rating == "ALL"] <- "G"
+dat$rating[dat$rating == "NOT RATED"] <- "NR"
+dat$rating[dat$rating == "NOT_RATE"] <- "NR"
+dat$rating[dat$rating == "ALL_AGES"] <- "G"
+dat$rating[dat$rating == "AGES_16_"] <- "R"
+dat$rating[dat$rating == "16+"] <- "TV-14"
+dat$rating[dat$rating == "AGES_18_"] <- "R"
+dat$rating[dat$rating == "18+"] <- "R"
+dat$rating[dat$rating == "UNRATED"] <- "NR"
+dat$rating[dat$rating == "UR"] <- "NR"
+dat$rating[dat$rating == "TV-NR"] <- "NR"
+dat$rating[dat$rating == "16"] <- "TV-14"
+dat$rating[dat$rating == "TV-Y7-FV"] <- "TV-Y7"
+dat$rating[dat$rating == "7+"]<- "TV-Y7"
+
+# Clean Budget and Revenue
+dat$budget[dat$budget == "0"]<- NA
+dat$budget[dat$revenue == "0"]<- NA
+
+```
+
+
+```{r}
+
+#Shiny DATA 
+
+
+datt <- dat[, c( "title", "type",  "date_added",  "platform", "budget", "revenue", "vote_average")]
+
+
+dat.tv <- datt[type == "TV Show"]
+
+dat.movie <- datt[type == "Movie"]
+
+dat.movie <- na.omit(dat.movie)
+dat.tv <- dat.tv %>% select("title", "date_added", "platform", "vote_average")
+dat.tv <- na.omit(dat.tv)
+```
+
+```{r}
+
+#Variables
+movie.unique.names <- unique(dat.movie$title)
+platform.unique.names <- unique(dat$platform)
+tv.unique.names <- unique(dat.tv$title)
+
+
+#Constants
+title.name <- "title"
+platform.name <- "platform"
+date.name <- "date_added"
+budget.name <- "budget"
+revenue.name <- "revenue"
+vote.name <- "vote_average"
+movies.selected.names <- c("The Marksman", "Unfaithful", "Happy Feet", "Take Care")
+
+```
+
+Movies
+=====================================  
+
+Sidebar .{data-width = 500}
+-------------------------------------
+
+
+```{r}
+
+inputPanel(
+
+    pickerInput(inputId = "title", label = "Select Title", choices = sort(movie.unique.names), options = list(`actions-box` = TRUE, `live-search` =TRUE),multiple = TRUE, selected = movie.unique.names)
+    ,  selectInput(inputId = "platform", label = "Select Platform", choices = platform.unique.names, selected = platform.unique.names, multiple = TRUE)
+    ,  dateRangeInput(inputId = "date", label = "Date Range", start = "2018-01-01", end = "2021-12-01", format = "yyyy-mm-dd")
+    ,  sliderInput("budget", label = "Budget", min = 100000, max = 400000000, value = c(60000000, 400000000), step = 1000000 )
+    ,  sliderInput("revenue", label = "Revenue", min = 0, max = 2850000000, value = c(10000000, 2850000000), step = 850000000 )
+    ,  sliderInput("vote", label = "Vote Avg", min = 0, max = 10, value = c(0,10))
+)
+
+
+```
+
+
+Row .{data-height= 650}
+-------------------------------------
+
+```{r}
+
+
+renderDataTable({
+  
+  subdat <- dat.movie[get(title.name) %in% input$title & get(platform.name) %in% input$platform & get(budget.name) >= input$budget[1] & get(budget.name) <= input$budget[2] &
+                        get(revenue.name) >= input$revenue[1] & get(revenue.name) <= input$revenue[2] & get(vote.name) >= input$vote[1] & get(vote.name) <= input$vote[2] &
+                        get(date.name) >= input$date[1] & get(date.name) <= input$date[2] ]
+  
+
+  datatable(data = subdat, options = list(columnDefs = list(list(className = 'dt-center')),
+                                          pageLength = 100, lengthMenu = c(10, 50,100,150,200,1000)))
+  
+  
+  
+})
+```
+
+TV
+===================================
+
+Row .{data-width = 500}
+-------------------------------------
+
+```{r}
+
+
+inputPanel(
+
+    pickerInput(inputId = "title", label = "Select Title", choices = sort(tv.unique.names), options = list(`actions-box` = TRUE, `live-search` =TRUE),multiple = TRUE, selected = tv.unique.names)
+    ,  selectInput(inputId = "platform", label = "Select Platform", choices = platform.unique.names, selected = platform.unique.names, multiple = TRUE)
+    ,  dateRangeInput(inputId = "date1", label = "Date Range", start = "2006-07-01", end = "2021-12-01", format = "yyyy-mm-dd")
+    ,  sliderInput("vote1", label = "Vote Avg", min = 0, max = 10, value = c(0,10))
+)
+
+
+
+```
+
+
+
+Row {data-height=500}
+-------------------------------------
+```{r}
+
+
+renderDataTable({
+  
+  subdat1 <- dat.tv[get(title.name) %in% input$title & get(platform.name) %in% input$platform & get(vote.name) >= input$vote1[1] & get(vote.name) <= input$vote1[2] &
+                        get(date.name) >= input$date1[1] & get(date.name) <= input$date1[2] ]
+  
+
+  datatable(data = dat.tv, options = list(columnDefs = list(list(className = 'dt-center')),
+                                          pageLength = 100, lengthMenu = c(10,50,100,150,200,1000)))
+  
+  
+  
+})
+```
+
