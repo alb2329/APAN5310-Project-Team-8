@@ -136,7 +136,7 @@ print(movie_df)
 # In[160]:
 
 
-# for each of the films make an api call for that specific movie to return the budget, vote_average, and revenue
+# for each of the shows make an api call for that specific tv show to return the episode_run_time, number_of_episodes, and vote_average
 for show in tv_results:
     show_extra = requests.get('https://api.themoviedb.org/3/tv/'+ str(show['id']) +'?api_key='+ api_key)
     show_extra = show_extra.json()
