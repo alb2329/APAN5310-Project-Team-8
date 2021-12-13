@@ -509,7 +509,7 @@ stmt = "
 "
 dbGetQuery(con, stmt)
 
-stmt = "SELECT * FROM movies_by_genre;"
+stmt = "SELECT * FROM movies_by_genre ORDER BY avg_vote;"
 
 dbGetQuery(con, stmt)
 
@@ -527,7 +527,7 @@ stmt = "
 "
 dbGetQuery(con, stmt)
 
-stmt = "SELECT * FROM tv_by_genre;"
+stmt = "SELECT * FROM tv_by_genre ORDER BY avg_vote;"
 
 dbGetQuery(con, stmt)
 
@@ -545,7 +545,7 @@ stmt = "
 "
 dbGetQuery(con, stmt)
 
-stmt = "SELECT * FROM movie_by_country;"
+stmt = "SELECT * FROM movie_by_country ORDER BY avg_vote DESC;"
 
 dbGetQuery(con, stmt)
 
@@ -563,7 +563,7 @@ stmt = "
 "
 dbGetQuery(con, stmt)
 
-stmt = "SELECT * FROM tv_by_country;"
+stmt = "SELECT * FROM tv_by_country ORDER BY avg_vote DESC;"
 
 dbGetQuery(con, stmt)
 
