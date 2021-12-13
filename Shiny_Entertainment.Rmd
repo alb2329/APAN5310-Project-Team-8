@@ -1,0 +1,243 @@
+---
+title: "Streaming Entertainment Analysis"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(warning = FALSE)
+library(flexdashboard)
+library(shiny)
+library(shinythemes)
+library(shinyWidgets)
+library(lubridate)
+library(DT)
+library(tidyverse)
+library(ggplot2)
+library(data.table) 
+library(odbc)
+library(ggthemes)
+require('RPostgreSQL')
+
+```
+
+
+```{r}
+
+# Load the PostgreSQL driver:
+drv <- dbDriver('PostgreSQL')
+
+# Connect to the Database
+con <- dbConnect(drv, dbname = 'gp',
+                 host = 'localhost', port = 5432,
+                 user = 'postgres', password = '123')
+```
+
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+# Movie Query
+
+st <- "select
+m.title,
+m.budget,
+m.revenue,
+m.vote_average,
+p.platform,
+mp.date_added
+from movie m
+left join movie_platform mp on m.movie_id = mp.movie_id
+left join platform p on p.platform_id = mp.platform_id"
+
+dat.movie <- dbGetQuery(con, st)
+
+```
+
+```{r}
+#TV Query 
+
+st1 <- "select
+m.title,
+p.platform,
+mp.date_added,
+m.vote_average
+from tv m
+left join tv_platform mp on m.tv_id = mp.tv_id
+left join platform p on p.platform_id = mp.platform_id"
+
+dat.tv <- dbGetQuery(con, st1)
+
+
+
+```
+
+```{r}
+st3 <- "select * from movies_by_platform"
+
+dat.platform <- dbGetQuery(con, st3)
+```
+
+```{r}
+
+#Shiny DATA 
+
+dat.movie <- na.omit(dat.movie)
+dat.movie <- setDT(dat.movie)
+
+dat.tv <- na.omit(dat.tv)
+dat.tv <- setDT(dat.tv)
+
+dat.platform <- setDT(dat.platform)
+dat.platform$cluster <- sample(4, size = nrow(dat.platform), replace = TRUE)
+
+```
+
+```{r}
+
+#Variables
+movie.unique.names <- unique(dat.movie$title)
+platform.unique.names <- unique(dat.movie$platform)
+tv.unique.names <- unique(dat.tv$title)
+
+
+#Constants
+title.name <- "title"
+platform.name <- "platform"
+date.name <- "date_added"
+budget.name <- "budget"
+revenue.name <- "revenue"
+vote.name <- "vote_average"
+movies.selected.names <- c("The Marksman", "Unfaithful", "Happy Feet", "Take Care")
+avg.budget.name <- "avg_budget"
+cluster.name <- "cluster"
+variable.choices.names <- c("avg_budget", "avg_revenue", "avg_vote")
+
+genre.name <- "genre"
+```
+
+Movies
+=====================================  
+
+{.sidebar width = 1} 
+-------------------------------------
+
+
+```{r}
+
+inputPanel(
+
+    pickerInput(inputId = "title", label = "Select Title", choices = sort(movie.unique.names), options = list(`actions-box` = TRUE, `live-search` =TRUE),multiple = TRUE, selected = movie.unique.names)
+    ,  selectInput(inputId = "platform", label = "Select Platform", choices = platform.unique.names, selected = platform.unique.names, multiple = TRUE)
+    ,  dateRangeInput(inputId = "date", label = "Date Range", start = "2018-01-01", end = "2021-12-01", format = "yyyy-mm-dd")
+    ,  sliderInput("budget", label = "Budget", min = 100000, max = 400000000, value = c(100000, 400000000), step = 1000000 )
+    ,  sliderInput("revenue", label = "Revenue", min = 0, max = 2850000000, value = c(10000000, 2850000000), step = 850000000 )
+    ,  sliderInput("vote", label = "Vote Avg", min = 0, max = 10, value = c(0,10))
+)
+
+
+```
+
+Column 
+-------------------------------------
+
+```{r}
+
+
+renderDataTable({
+  
+  subdat <- dat.movie[get(title.name) %in% input$title & get(platform.name) %in% input$platform & get(budget.name) >= input$budget[1] & get(budget.name) <= input$budget[2] & get(revenue.name) >= input$revenue[1] & get(revenue.name) <= input$revenue[2] & get(vote.name) >= input$vote[1] & get(vote.name) <= input$vote[2] &  get(date.name) >= input$date[1] & get(date.name) <= input$date[2] ]
+  
+
+  datatable(data = subdat, options = list(columnDefs = list(list(className = 'dt-center')),
+                                          pageLength = 100, lengthMenu = c(10, 50,100,150,200,1000)))
+  
+  
+  
+})
+```
+
+TV
+===================================
+
+{.sidebar width = 1} 
+-------------------------------------
+
+```{r}
+
+
+inputPanel(
+
+    pickerInput(inputId = "title1", label = "Select Title", choices = sort(tv.unique.names), options = list(`actions-box` = TRUE, `live-search` =TRUE),multiple = TRUE, selected = tv.unique.names)
+    ,  selectInput(inputId = "platform1", label = "Select Platform", choices = platform.unique.names, selected = platform.unique.names, multiple = TRUE)
+    ,  dateRangeInput(inputId = "date1", label = "Date Range", start = "2006-07-01", end = "2021-12-01", format = "yyyy-mm-dd")
+    ,  sliderInput("vote1", label = "Vote Avg", min = 0, max = 10, value = c(0,10))
+)
+
+
+
+```
+
+
+
+Column 
+-------------------------------------
+```{r}
+
+
+renderDataTable({
+  
+  subdat1 <- dat.tv[get(title.name) %in% input$title1 & get(platform.name) %in% input$platform1 & get(vote.name) >= input$vote1[1] & get(vote.name) <= input$vote1[2] &  get(date.name) >= input$date1[1] & get(date.name) <= input$date1[2] ]
+  
+
+  datatable(data = subdat1, options = list(columnDefs = list(list(className = 'dt-center')),
+                                          pageLength = 100, lengthMenu = c(10,50,100,150,200,1000)))
+  
+  
+  
+})
+```
+
+
+Platform Analysis Analysis
+===================================
+
+{.sidebar} 
+-------------------------------------
+Instructions: Select a Y variable from the drop down below to view platform comparisons for movies data: 
+
+```{r}
+
+
+inputPanel(
+
+   selectInput(inputId = "variable", label = "Select Y Variable", choices = variable.choices.names, selected = avg.budget.name)
+    
+)
+
+
+
+```
+
+
+
+Column 
+-------------------------------------
+```{r}
+options(scipen = 100)
+
+renderPlot({
+
+ p <- ggplot(dat.platform, aes(x = platform, y = get(input$variable))) + geom_bar(stat = "identity", fill = "steelblue")
+ p + xlab("Platform") + ylab(input$variable) + theme_gdocs() + ggtitle("Platform Financial Analysis") + scale_y_continuous(name = input$variable)
+
+
+
+
+})
+
+
+```
+
+
+
+
+
